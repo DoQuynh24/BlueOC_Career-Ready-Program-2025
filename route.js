@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const middleware = require('./middleware') ();
 const JWT_SECRET ='mysecret';
+const { body, validationResult } = require('express-validator');
 
 let users =[
     {
@@ -21,7 +22,13 @@ let users =[
         role: 'user' 
     }
 ]
-
+const validate = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+}
 //CRUD users
 //create path: POST/users
 //read path: list: GET /users <> get detail: GET /users/:id
@@ -42,11 +49,16 @@ route.get('/users/:id',middleware.requireToken, (req, res) => {
     return res.status(200).json(user);
 });
 
-route.post('/users', middleware.requireToken,(req, res) =>{
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-        return res.status(400).json({ message: 'name, email, and password are required' });
-    }
+route.post('/users', middleware.requireToken,
+    [
+    body('name').notEmpty().withMessage('Name is required'),
+    body('email').isEmail().withMessage('Email must be valid'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+    body('role').isIn(['admin', 'user']).withMessage('Role must be either "admin" or "user"')
+    ],validate,
+    (req, res) => {
+    const { name, email, password, role } = req.body;
+
     if (users.some(user => user.email === email)){
         return res.status(400).json({message:'email already exist'})
     }
@@ -56,25 +68,28 @@ route.post('/users', middleware.requireToken,(req, res) =>{
         id: addId,
         name,
         email,
-        password: hashedPassword
+        password: hashedPassword,
+        role
     };
     users.push(addedUser);
     return res.status(200).json(addedUser);
 });
 
-route.put('/users/:id', middleware.requireToken, middleware.requireAdmin,(req, res) =>{
+route.put('/users/:id', middleware.requireToken, middleware.requireAdmin,
+    [
+    body('name').notEmpty().withMessage('Name is required'),
+    body('email').isEmail().withMessage('Email must be valid'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+    body('role').isIn(['admin', 'user']).withMessage('Role must be either "admin" or "user"')
+    ], validate,
+    (req, res) => {
     const userId = parseInt(req.params.id);
     const userIndex = users.findIndex(user => user.id === userId);
     if (userIndex === -1){
         return res.status(404).json ({message: 'user not found'});
     }
     const {name, email, password,role} = req.body;
-    if (!name || !email || !password || !role){
-        return res.status(400).json({message:'name, email, password and role are required'});
-    }
-    if (!['admin', 'user'].includes(role)) {
-        return res.status(400).json({ message: 'role must be either "admin" or "user"' });
-    }
+   
     if ( users.some(user => user.email === email && user.id !== userId)){
         return res.status(400).json({message:'email already exist'});
     }
