@@ -10,13 +10,15 @@ let users =[
         id: 1,
         name: 'DoQuynh',
         email: 'doquynh@example.com',
-        password: '$2a$12$8GDWyOeHYVXm7PQTKMvTVOS/47WoUEQgshioQtl2Nl57euqbosBpy' 
+        password: '$2a$12$8GDWyOeHYVXm7PQTKMvTVOS/47WoUEQgshioQtl2Nl57euqbosBpy',
+        role: 'admin' 
     },
     {
         id: 2,
         name: 'BuiLinh',
         email: 'builinh@example.com',
-        password: '$2a$12$CLq8VwzlvYzcruoy/6h2Pe2Nc3Z7q4b3xg5X.3xW9XIsgOhgyWUya' 
+        password: '$2a$12$CLq8VwzlvYzcruoy/6h2Pe2Nc3Z7q4b3xg5X.3xW9XIsgOhgyWUya',
+        role: 'user' 
     }
 ]
 
@@ -60,15 +62,18 @@ route.post('/users', middleware.requireToken,(req, res) =>{
     return res.status(200).json(addedUser);
 });
 
-route.put('/users/:id', middleware.requireToken,(req, res) =>{
+route.put('/users/:id', middleware.requireToken, middleware.requireAdmin,(req, res) =>{
     const userId = parseInt(req.params.id);
     const userIndex = users.findIndex(user => user.id === userId);
     if (userIndex === -1){
         return res.status(404).json ({message: 'user not found'});
     }
-    const {name, email, password} = req.body;
-    if (!name || !email || !password){
-        return res.status(400).json({message:'name, email, and password are required'});
+    const {name, email, password,role} = req.body;
+    if (!name || !email || !password || !role){
+        return res.status(400).json({message:'name, email, password and role are required'});
+    }
+    if (!['admin', 'user'].includes(role)) {
+        return res.status(400).json({ message: 'role must be either "admin" or "user"' });
     }
     if ( users.some(user => user.email === email && user.id !== userId)){
         return res.status(400).json({message:'email already exist'});
@@ -78,12 +83,13 @@ route.put('/users/:id', middleware.requireToken,(req, res) =>{
         id: userId,
         name,
         email,
-        password: hashedPassword
+        password: hashedPassword, 
+        role
     };
     return res.status(200).json(users[userIndex]);
 });
 
-route.delete('/users/:id',middleware.requireToken, (req, res)=>{
+route.delete('/users/:id',middleware.requireToken, middleware.requireAdmin, (req, res)=>{
     const userId = parseInt(req.params.id);
     const userIndex =  users.findIndex(user => user.id === userId);
     if (userIndex === -1) {

@@ -26,5 +26,11 @@ module.exports = function(){
             return next();
         })
     }
-    return {requireToken};
+    function requireAdmin(req, res, next){
+        if(!req.user || req.user.role !== 'admin'){
+            return res.status(403).json({message: 'admin access required'});
+        }
+        return next();
+    }
+    return {requireToken, requireAdmin};
 }
