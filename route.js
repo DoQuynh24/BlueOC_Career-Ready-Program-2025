@@ -31,7 +31,7 @@ route.get('/users', (req, res) =>{
     return res.status(200).json(users);
 })
 
-route.get('/users/:id', (req, res) => {
+route.get('/users/:id',middleware.requireToken, (req, res) => {
     const userId = parseInt(req.params.id);
     const user = users.find(user => user.id === userId);
     if (!user){
@@ -40,7 +40,7 @@ route.get('/users/:id', (req, res) => {
     return res.status(200).json(user);
 });
 
-route.post('/users', (req, res) =>{
+route.post('/users', middleware.requireToken,(req, res) =>{
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
         return res.status(400).json({ message: 'name, email, and password are required' });
@@ -60,7 +60,7 @@ route.post('/users', (req, res) =>{
     return res.status(200).json(addedUser);
 });
 
-route.put('/users/:id', (req, res) =>{
+route.put('/users/:id', middleware.requireToken,(req, res) =>{
     const userId = parseInt(req.params.id);
     const userIndex = users.findIndex(user => user.id === userId);
     if (userIndex === -1){
@@ -83,7 +83,7 @@ route.put('/users/:id', (req, res) =>{
     return res.status(200).json(users[userIndex]);
 });
 
-route.delete('/users/:id', (req, res)=>{
+route.delete('/users/:id',middleware.requireToken, (req, res)=>{
     const userId = parseInt(req.params.id);
     const userIndex =  users.findIndex(user => user.id === userId);
     if (userIndex === -1) {
